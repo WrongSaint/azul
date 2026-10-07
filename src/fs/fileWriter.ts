@@ -233,6 +233,13 @@ export class FileWriter {
     const desiredPath = path.join(this.baseDir, ...parts);
     const normalizedDesiredPath = path.resolve(desiredPath);
 
+    const safeBase = path.resolve(this.baseDir) + path.sep;
+    if (!normalizedDesiredPath.startsWith(safeBase)) {
+      throw new Error(
+        `Refusing to write outside sync directory: ${normalizedDesiredPath}`,
+      );
+    }
+
     // Check for collisions in both the persistent mappings and the batch collision map
     const existingGuid = this.pathToGuid.get(normalizedDesiredPath);
     const batchGuid = batchCollisionMap?.get(normalizedDesiredPath);
@@ -306,7 +313,13 @@ export class FileWriter {
    */
   private sanitizeName(name: string): string {
     // Replace invalid filesystem characters
-    return name.replace(/[<>:"|?*]/g, "_");
+    let safe = name.replace(/[<>:"|?*]/g, "_");
+    // Strip path separators and ".."/"." segments to prevent path traversal
+    safe = safe.replace(/[\\/]/g, "_");
+    if (/^\.+$/.test(safe)) {
+      safe = `_${safe}`;
+    }
+    return safe;
   }
 
   /**
@@ -367,6 +380,11 @@ export class FileWriter {
    */
   private deleteFilePathInternal(filePath: string): boolean {
     const normalized = path.resolve(filePath);
+    const safeBase = path.resolve(this.baseDir) + path.sep;
+    if (!normalized.startsWith(safeBase)) {
+      log.warn(`Refusing to delete outside sync directory: ${normalized}`);
+      return false;
+    }
     let deleted = true;
 
     if (fs.existsSync(normalized)) {
