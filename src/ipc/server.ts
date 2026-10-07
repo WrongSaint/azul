@@ -51,14 +51,6 @@ export class IPCServer {
 
   private setupServer(): void {
     this.wss.on("connection", (ws, request) => {
-      
-      const origin = request.headers.origin;
-      if (origin) {
-        log.warn(`Rejected connection with browser-style Origin header: ${origin}`);
-        ws.close();
-        return;
-      }
-
       if (
         new URL(request.url ?? "/", "http://localhost").pathname ===
         "/studio-output"
