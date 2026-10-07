@@ -74,7 +74,7 @@ export class SyncDaemon {
     });
 
     this.setupHandlers();
-    this.httpServer.listen(config.port);
+    this.httpServer.listen(config.port, "127.0.0.1");
   }
 
   /**
