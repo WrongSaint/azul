@@ -31,12 +31,25 @@ export class IPCServer {
 
   constructor(port?: number, server?: HttpServer, options?: IPCServerOptions) {
     this.requestSnapshotOnConnect = options?.requestSnapshotOnConnect !== false;
+    const verifyClient = (
+      info: { req: { headers: { origin?: string } } },
+      callback: (result: boolean, code?: number, message?: string) => void,
+    ) => {
+      const origin = info.req.headers.origin;
+      if (origin) {
+        log.warn(`Rejected WebSocket handshake with browser-style Origin header: ${origin}`);
+        callback(false, 403, "Forbidden");
+        return;
+      }
+      callback(true);
+    };
     if (server) {
       // Use existing HTTP server
       this.wss = new WebSocketServer({
         server,
         // perMessageDeflate: false, // Roblox WebSocket client does not negotiate RSV2/RSV3 extensions
         maxPayload: 256 * 1024 * 1024, // 256 MB
+        verifyClient,
       });
     } else {
       // Create standalone WebSocket server
@@ -44,6 +57,7 @@ export class IPCServer {
         port: port || 8080,
         // perMessageDeflate: false, // avoid RSV2/RSV3 bits from compression
         maxPayload: 256 * 1024 * 1024, // 256 MB
+        verifyClient,
       });
     }
     this.setupServer();
