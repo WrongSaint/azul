@@ -51,6 +51,8 @@ export class IPCServer {
 
   private setupServer(): void {
     this.wss.on("connection", (ws, request) => {
+      log.info(`[origin-check] Origin header: ${request.headers.origin ?? "(none — safe)"}`);
+
       if (
         new URL(request.url ?? "/", "http://localhost").pathname ===
         "/studio-output"
